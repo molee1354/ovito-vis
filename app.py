@@ -33,4 +33,5 @@ vp.dataset.anim.start_animation_playback(3.)
 # Shut down application when the user closes the viewport widget.
 widget.destroyed.connect(QApplication.instance().quit)
 
-sys.exit(myapp.exec_()) 
+# sys.exit(myapp.exec_()) 
+sys.exit(myapp.exec())

@@ -1,7 +1,8 @@
 # directories
+out/
 venv/
 datas/
-out/
+__pycache__/
 
 # files
 local_paths.py
