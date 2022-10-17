@@ -1,0 +1,7 @@
+# directories
+venv/
+datas/
+out/
+
+# files
+local_paths.py
