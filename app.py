@@ -1,11 +1,14 @@
+import os
 import sys
+import random
 
 import local_paths
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QApplication, QMainWindow, QPushButton, QWidget)
+    QHBoxLayout, QVBoxLayout,
+    QApplication, QMainWindow,
+    QPushButton, QLineEdit, QWidget)
 
 
 class MainWindow(QMainWindow):
@@ -14,21 +17,32 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Simulation Player")
         self.setFixedSize( QSize(800,600) )
-        layout = QHBoxLayout()
+        self.layout1 = QHBoxLayout()
+        layout2 = QVBoxLayout()
 
-        self.viewport = self.ovito_viewport(local_paths.bennus)
+        self.file = f"{local_paths.files_dir}/{random.choice(os.listdir(local_paths.files_dir))}"
+        self.viewport = self.ovito_viewport(self.file)
 
         self.sim_window = self.viewport.create_qt_widget()
+        self.layout1.addWidget(self.sim_window)
+
         button = QPushButton("Button")
         button.setFixedSize( QSize(200,100))
+        button.clicked.connect(self.play)
 
-        layout.addWidget(self.sim_window)
-        layout.addWidget(button)
+        inputbox = QLineEdit()
+        inputbox.setFixedWidth(100)
+        inputbox.setMaxLength(4)
+        inputbox.setPlaceholderText("Behavior")
+        inputbox.returnPressed.connect(self.return_pressed)
+        layout2.addWidget(button)
+        layout2.addWidget(inputbox)
 
-        widg = QWidget()
-        widg.setLayout(layout)
-        self.setCentralWidget(widg)
-        # self.setCentralWidget(self.widget)
+        self.layout1.addLayout(layout2)
+
+        widget1 = QWidget()
+        widget1.setLayout(self.layout1)
+        self.setCentralWidget(widget1)
 
     def ovito_viewport(self, filename: str):
         from ovito.io import import_file
@@ -37,28 +51,24 @@ class MainWindow(QMainWindow):
         pipeline = import_file(filename)
         pipeline.add_to_scene()
 
-        out = Viewport(type=Viewport.Type.Perspective, camera_dir=(0,0,-1))
+        out = Viewport(type=Viewport.Type.Perspective)
+        out.camera_dir=(0,0,-1)
         out.camera_pos = (0.16,0.2,0.55)
 
         return out
 
-    def do(self) -> None:
-        self.sim_window.show()
-        
+    def play(self) -> None:
+        #TODO self.layout1.removeWidget(self.sim_window)
+        #TODO reset simulation on button click
         self.viewport.dataset.anim.start_animation_playback(3.)
+    
+    def return_pressed(self) -> None:
+        print("return pressed")
 
 
 def main() -> None:
     app = QApplication(sys.argv)
     window = MainWindow()
-
-    window.do()
-    # window.widget.resize(640,480)
-    # window.widget.setWindowTitle("Random Impact Player")
-    # window.widget.show()
-    
-    # window.vp.dataset.anim.start_animation_playback(3.)
-
     window.show()
 
     app.exec()
