@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
 
         self.sim_window = self.viewport.create_qt_widget()
         self.layout1.addWidget(self.sim_window)
+        self.sim_window.destroyed.connect(QApplication.instance().quit)
 
         button = QPushButton("Button")
         button.setFixedSize( QSize(200,100))
@@ -71,7 +72,7 @@ def main() -> None:
     window = MainWindow()
     window.show()
 
-    app.exec()
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()
