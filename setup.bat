@@ -1,3 +1,4 @@
+@echo off
 FOR /F "tokens=* USEBACKQ" %%F IN (`where python ^| findstr Python310`) DO (
 SET py310=%%F
 )
