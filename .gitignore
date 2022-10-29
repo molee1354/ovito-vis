@@ -8,3 +8,5 @@ __pycache__/
 local_paths.py
 ref.py
 ref2.py
+*.ipynb
+*.json

@@ -1,6 +1,7 @@
-from email.charset import QP
 import os
+import re
 import sys
+import json
 from random import shuffle
 import local_paths
 
@@ -19,22 +20,18 @@ class MainWindow(QMainWindow):
         self.setFixedSize( QSize(800,600) )
         
         # layouts
-        layout1 = QVBoxLayout()
-        layout2 = QHBoxLayout()
+        view_layout = QVBoxLayout()
+        input_layout = QHBoxLayout()
 
         self.files_list = self.generate_file()
         self.file = next(self.files_list)
         self.viewport = self.ovito_viewport(self.file)
 
         sim_window = self.viewport.create_qt_widget()
-        layout1.addWidget(sim_window)
+        view_layout.addWidget(sim_window)
         sim_window.destroyed.connect(QApplication.instance().quit)
 
-        # button = QPushButton("Play")
-        # # button.setFixedSize( QSize(200,100))
-        # button.setFixedWidth(50)
-        # button.clicked.connect(self.play)
-        buttons_oper = ["|<","<","play","pause",">",">|"]
+        buttons_oper = ["|<","<","play","play.5","pause",">",">|"]
         buttons = [self.create_button(b) for b in buttons_oper]
 
         self.inputbox = QLineEdit()
@@ -44,21 +41,23 @@ class MainWindow(QMainWindow):
         self.inputbox.returnPressed.connect(self.return_pressed)
 
         for button in buttons:
-            layout2.addWidget(button)
-        layout2.addWidget(self.inputbox)
+            input_layout.addWidget(button)
+        input_layout.addWidget(self.inputbox)
 
-        layout1.addLayout(layout2)
+        view_layout.addLayout(input_layout)
 
         widget = QWidget()
-        widget.setLayout(layout1)
+        widget.setLayout(view_layout)
         self.setCentralWidget(widget)
+
+        self.behaviors = {}
 
     def generate_file(self) -> str:
         files_list = [ f"{local_paths.files_dir}{f}"
-                       for f in os.listdir(local_paths.files_dir) ]
+                       for f in os.listdir(local_paths.files_dir)
+                       if "dmp.reg" in f ]
         shuffle(files_list)
-        for i,file in enumerate(files_list):
-            print(i)
+        for file in files_list[:5]:
             yield file
 
     def ovito_viewport(self, filename: str):
@@ -78,14 +77,21 @@ class MainWindow(QMainWindow):
         from ovito.io import import_file
         self.pipeline.remove_from_scene()
 
-        self.file = next(self.files_list)
+        try:
+            self.file = next(self.files_list)
+        except StopIteration:
+            print(self.behaviors)
+            with open("behaviors.json", 'w') as f:
+                json.dump(self.behaviors,f, indent=4)
+            exit()
+
         self.pipeline = import_file(self.file)
         self.pipeline.add_to_scene()
 
         self.viewport.dataset.anim.start_animation_playback(3.)
 
     def play(self) -> None:
-        #TODO self.layout1.removeWidget(self.sim_window)
+        #TODO self.view_layout.removeWidget(self.sim_window)
         #TODO reset simulation on button click
         self.viewport.dataset.anim.start_animation_playback(3.)
     
@@ -98,31 +104,42 @@ class MainWindow(QMainWindow):
         return out
 
     def button_operation(self) -> dict:
-        out = {"play" : self.play,
-               "pause": self.pause,
-               ">"    : self.step_up,
-               "<"    : self.step_down,
-               "|<"   : self.jump_start,
-               ">|"   : self.jump_end}
+        out = {"play"  : self.play,
+               "play.5": self.playslow,
+               "pause" : self.pause,
+               ">"     : self.step_up,
+               "<"     : self.step_down,
+               "|<"    : self.jump_start,
+               ">|"    : self.jump_end}
         return out
     
-    def play(self):
+    def play(self) -> None:
         self.viewport.dataset.anim.start_animation_playback(3.)
-    def pause(self):
+    def playslow(self) -> None:
+        self.viewport.dataset.anim.start_animation_playback(0.5)
+    def pause(self) -> None:
         self.viewport.dataset.anim.stop_animation_playback()
-    def step_up(self):
+    def step_up(self) -> None:
         self.viewport.dataset.anim.jump_to_next_frame()
-    def step_down(self):
+    def step_down(self) -> None:
         self.viewport.dataset.anim.jump_to_previous_frame()
-    def jump_start(self):
+    def jump_start(self) -> None:
         self.viewport.dataset.anim.jump_to_animation_start()
-    def jump_end(self):
+    def jump_end(self) -> None:
         self.viewport.dataset.anim.jump_to_animation_end()
     
     def return_pressed(self) -> None:
+        behavior = self.inputbox.text()
+        if behavior.upper() not in ["FS","RC","RO"]:
+            self.inputbox.clear()
+            return
         print(self.inputbox.text())
+        id = re.findall("V[0-9]+\.?[0-9]+_A[0-9]+",self.file)[0]
+        self.behaviors[id] = self.inputbox.text().upper()
+
         self.inputbox.clear()
         self.reset_viewport()
+        print(self.file)
 
 
 def main() -> None:
