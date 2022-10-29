@@ -3,7 +3,6 @@ import re
 import sys
 import json
 from random import shuffle
-import local_paths
 
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
