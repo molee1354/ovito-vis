@@ -9,7 +9,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QHBoxLayout, QVBoxLayout,
     QApplication, QMainWindow,
-    QPushButton, QLineEdit, QWidget)
+    QPushButton, QLineEdit, QWidget, QLabel)
 
 
 class MainWindow(QMainWindow):
@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Simulation Player")
         self.setFixedSize( QSize(800,600) )
+        self.w = None
         
         # layouts
         view_layout = QVBoxLayout()
@@ -25,11 +26,16 @@ class MainWindow(QMainWindow):
 
         self.files_list = self.generate_file()
         self.file = next(self.files_list)
+        self.handle = re.findall("[A-Za-z0-9]+_[A-Za-z0-9]+_",
+                            re.findall("[A-Za-z0-9]+_[A-Za-z0-9]+_V[0-9]+\.?[0-9]+_A[0-9]+",
+                            self.file)[0])[0]
         self.viewport = self.ovito_viewport(self.file)
 
+        self.progress_text = "Progress : " \
+                             f"{self.cur_file}/{self.total_files}"
+        self.progress = QLabel(self.progress_text)
+        self.progress.setFixedHeight(20)
         sim_window = self.viewport.create_qt_widget()
-        view_layout.addWidget(sim_window)
-        sim_window.destroyed.connect(QApplication.instance().quit)
 
         buttons_oper = ["|<","<","play","play.5","pause",">",">|"]
         buttons = [self.create_button(b) for b in buttons_oper]
@@ -40,9 +46,12 @@ class MainWindow(QMainWindow):
         self.inputbox.setPlaceholderText("Behavior")
         self.inputbox.returnPressed.connect(self.return_pressed)
 
+        view_layout.addWidget(self.progress)
+        view_layout.addWidget(sim_window)
         for button in buttons:
             input_layout.addWidget(button)
         input_layout.addWidget(self.inputbox)
+        sim_window.destroyed.connect(QApplication.instance().quit)
 
         view_layout.addLayout(input_layout)
 
@@ -53,11 +62,21 @@ class MainWindow(QMainWindow):
         self.behaviors = {}
 
     def generate_file(self) -> str:
-        files_list = [ f"{local_paths.files_dir}{f}"
-                       for f in os.listdir(local_paths.files_dir)
+        try:
+            files_dir = sys.argv[1]
+        except IndexError:
+            files_dir = os.getcwd()
+            
+        files_list = [ f"{files_dir}\\{f}"
+                       for f in os.listdir(files_dir)
                        if "dmp.reg" in f ]
+        if len(files_list) < 1:
+            print("\nFATAL: Could not find any files in the correct format!")
+            exit()
+        self.total_files = len(files_list)
         shuffle(files_list)
-        for file in files_list[:5]:
+        for i, file in enumerate(files_list):
+            self.cur_file = i+1
             yield file
 
     def ovito_viewport(self, filename: str):
@@ -79,16 +98,18 @@ class MainWindow(QMainWindow):
 
         try:
             self.file = next(self.files_list)
+            self.pipeline = import_file(self.file)
+            self.pipeline.add_to_scene()
+            self.progress_text = "Progress : " \
+                                f"{self.cur_file}/{self.total_files}"
+            self.progress.setText(self.progress_text)
+
+            self.viewport.dataset.anim.start_animation_playback(3.)
         except StopIteration:
-            print(self.behaviors)
-            with open("behaviors.json", 'w') as f:
-                json.dump(self.behaviors,f, indent=4)
-            exit()
-
-        self.pipeline = import_file(self.file)
-        self.pipeline.add_to_scene()
-
-        self.viewport.dataset.anim.start_animation_playback(3.)
+            self.pipeline.remove_from_scene()
+            if self.w is None:
+                self.w = SaveWindow(self.behaviors,self.handle)
+            self.w.show()
 
     def play(self) -> None:
         #TODO self.view_layout.removeWidget(self.sim_window)
@@ -133,13 +154,52 @@ class MainWindow(QMainWindow):
         if behavior.upper() not in ["FS","RC","RO"]:
             self.inputbox.clear()
             return
-        print(self.inputbox.text())
-        id = re.findall("V[0-9]+\.?[0-9]+_A[0-9]+",self.file)[0]
+        id = re.findall("[V[0-9]+\.?[0-9]+_A[0-9]+",self.file)[0]
         self.behaviors[id] = self.inputbox.text().upper()
 
         self.inputbox.clear()
         self.reset_viewport()
-        print(self.file)
+
+
+class SaveWindow(QWidget):
+    def __init__(self, data: dict, handles: str) -> None:
+        super().__init__()
+        self.data = data
+        self.handles = handles
+
+        layout = QVBoxLayout()
+        input_layout = QHBoxLayout()
+
+        self.label = QLabel("Savefile Name")
+        layout.addWidget(self.label)
+
+        self.inputbox = QLineEdit()
+        self.inputbox.setFixedWidth(200)
+        self.inputbox.setPlaceholderText(f"{self.handles}")
+        self.inputbox.returnPressed.connect(self.save_to_json)
+
+        self.ext_label = QLabel(".json")
+
+        self.button = QPushButton("save")
+        self.button.setFixedWidth(50)
+        self.button.clicked.connect(self.save_to_json)
+
+        input_layout.addWidget(self.inputbox)
+        input_layout.addWidget(self.ext_label)
+        input_layout.addWidget(self.button)
+        layout.addLayout(input_layout)
+
+        self.setLayout(layout)
+    
+    def save_to_json(self) -> None:
+        filename = f"{self.inputbox.text()}.json"
+        if len(self.inputbox.text()) < 1:
+            filename = f"{self.handles}.json"
+
+        with open(filename,'w') as f:
+            json.dump(self.data,f, indent=4)
+        exit()
+
 
 
 def main() -> None:
