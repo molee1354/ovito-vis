@@ -2,9 +2,9 @@
 
 ## Setting up the environment
 
-Clone this repository into your local machine by running the `git clone ` command
+Clone this repository into your local machine by running the `git clone` command
 
-        git clone url
+        git clone https://github.com/molee1354/ovito_vis.git
 
 Once you navigate into this new directory, you will see that there are a handful of different files of which only the following three are significant:
 
