@@ -56,7 +56,7 @@ But if `%FILEPATH%` gladly includes the simulation files that are to be classifi
 
 ![AppMainWindow](./images/appwindow.PNG)
 
-Press the `play` button to play the current simulation. You can also pan and rotate the current perspective in the viewing window. 
+Press the `play` button to play the current simulation. You can also pan and rotate the current perspective in the viewing window.
 
 To assign specific behaviors to the simulation displayed, you can select the `Behavior` box and type in either `FS` for *fullstop*, `RO` for *rollout*, or `RC` for *ricochet* and press enter. The input is limited to 4 characters and is not case sensitive. Inputs that are not either `FS`, `RO`, or `RC` will not be counted and pressing enter on any other input will not do anything (so as to prevent classifications input by mistake). When pressed enter with the correct input, the app will proceed to the next simulation. This new simulation will automatically play without de-selecting the behavior input box, so you can simply write in your new classification and press enter through the full list of simulations.
 
