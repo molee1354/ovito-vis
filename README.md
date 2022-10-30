@@ -4,7 +4,7 @@
 
 Clone this repository into your local machine by running the `git clone` command
 
-        git clone https://github.com/molee1354/ovito_vis.git
+        git clone https://github.com/molee1354/ovito-vis.git
 
 Once you navigate into this new directory, you will see that there are a handful of different files of which only the following three are significant:
 
